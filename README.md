@@ -2,16 +2,7 @@
 
 Website e-commerce yang menyediakan berbagai produk untuk membantu masyarakat menghadapi perubahan iklim, meningkatkan kesiapsiagaan terhadap bencana alam, serta mendukung gaya hidup yang lebih ramah lingkungan.
 
-Website ini dirancang dari sudut pandang pembeli (*buyer perspective*), sehingga pengunjung dapat menjelajahi produk, melihat detail produk, menyimpan produk favorit, dan mengelola keranjang belanja.
-
-## 🎯 Tujuan Proyek
-
-1. Meningkatkan kesadaran masyarakat terhadap isu perubahan iklim.
-2. Menyediakan katalog produk yang mendukung kesiapsiagaan menghadapi dampak perubahan iklim.
-3. Memperkenalkan alternatif produk yang lebih ramah lingkungan.
-4. Mendorong masyarakat untuk menerapkan gaya hidup berkelanjutan.
-
-## ✨ Fitur Website
+## Fitur 
 
 - **Home** – Halaman utama yang memperkenalkan safeClimate dan menampilkan produk unggulan.
 - **Products** – Katalog produk yang dilengkapi fitur pencarian dan filter kategori.
@@ -20,7 +11,7 @@ Website ini dirancang dari sudut pandang pembeli (*buyer perspective*), sehingga
 - **Shopping Cart** – Mengelola produk yang ingin dibeli, termasuk mengatur kuantitas dan menghitung subtotal.
 - **About** – Menampilkan informasi mengenai safeClimate.
 
-## 🛍️ Kategori Produk
+## Kategori Produk
 
 Produk safeClimate dikelompokkan ke dalam beberapa kategori:
 
@@ -31,13 +22,13 @@ Produk safeClimate dikelompokkan ke dalam beberapa kategori:
 
 Website menyediakan minimal 20 produk yang dapat dijelajahi oleh pengunjung.
 
-## 🛠️ Teknologi yang Digunakan
+## Teknologi yang Digunakan
 
 - **Next.js** – Framework pengembangan website berbasis React.
 - **TypeScript** – Menambahkan sistem tipe data pada JavaScript.
 - **Tailwind CSS** – Mengatur tampilan dan desain website.
 
-## 📂 Struktur Folder
+## Struktur Folder
 
 ```text
 safeclimate/
@@ -71,7 +62,7 @@ safeclimate/
 └── README.md
 ```
 
-## 🚀 Cara Menjalankan Proyek
+## Cara Menjalankan Proyek
 
 Pastikan Node.js dan npm sudah terpasang pada perangkat.
 
@@ -106,12 +97,6 @@ Akses alamat berikut melalui browser:
 ```text
 http://localhost:3000
 ```
-
-## 💾 Penyimpanan Data
-
-Pada tahap pengembangan saat ini, fitur Wishlist dan Shopping Cart menggunakan LocalStorage.
-
-Data disimpan secara lokal pada browser pengguna, sehingga tidak memerlukan autentikasi maupun database untuk menjalankan fitur tersebut.
 
 ## 🌍 Isu Global dan SDGs
 
