@@ -10,6 +10,7 @@ const navLinks = [
   { name: "Products", href: "/products" },
   { name: "Wishlist", href: "/wishlist" },
   { name: "Cart", href: "/cart" },
+  { name: "Order History", href: "/orders"},
   { name: "About", href: "/about" },
 ];
 
