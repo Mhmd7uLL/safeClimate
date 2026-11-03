@@ -1,3 +1,4 @@
+
 import { Pool } from "pg";
 
 const globalForPg = globalThis as typeof globalThis & {
@@ -5,21 +6,20 @@ const globalForPg = globalThis as typeof globalThis & {
 };
 
 function createPool() {
-  const { DB_HOST, DB_NAME, DB_USER, DB_PASSWORD } = process.env;
+  const connectionString = process.env.DATABASE_URL;
 
-  if (!DB_HOST || !DB_NAME || !DB_USER || !DB_PASSWORD) {
-    throw new Error("Database environment variables are incomplete.");
+  if (!connectionString) {
+    throw new Error("DATABASE_URL belum dikonfigurasi.");
   }
 
   return new Pool({
-    host: DB_HOST,
-    port: Number(process.env.DB_PORT ?? 5432),
-    database: DB_NAME,
-    user: DB_USER,
-    password: DB_PASSWORD,
-    max: 10,
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+    max: 5,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 10000,
   });
 }
 
