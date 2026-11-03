@@ -12,6 +12,13 @@ export function getMidtransSnap() {
     throw new Error("Midtrans API keys belum dikonfigurasi.");
   }
 
+  console.info("[Midtrans config check]", {
+    serverKeyIsSandbox: serverKey.startsWith("SB-Mid-server-"),
+    clientKeyIsSandbox: clientKey.startsWith("SB-Mid-client-"),
+    isProduction,
+    serverKeyLength: serverKey.length,
+  });
+
   return new midtransClient.Snap({
     isProduction,
     serverKey,
