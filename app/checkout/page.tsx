@@ -40,6 +40,7 @@ interface CompletedOrder {
   id: string;
   customerName: string;
   total: number;
+  paymentStatus: string;
 }
 
 interface Product {
@@ -53,7 +54,6 @@ interface Product {
 
 export default function CheckoutPage() {
   const { cartItems, totalItems, clearCart } = useCart();
-
   const [products, setProducts] = useState<Product[]>([]);
   const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState(false);
@@ -102,6 +102,7 @@ export default function CheckoutPage() {
     postalCode: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
 
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("eco");
 
@@ -133,6 +134,27 @@ export default function CheckoutPage() {
       ...prev,
       [name]: value,
     }));
+  }
+
+  async function createPayment(orderNumber: string, accessToken: string) {
+    const response = await fetch("/api/payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        orderNumber,
+        accessToken,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success || !data.payment?.token) {
+      throw new Error(data.message || "Failed to create payment transaction.");
+    }
+
+    return data.payment;
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -213,15 +235,27 @@ export default function CheckoutPage() {
         console.error("Failed to save order history reference:", storageError);
       }
 
+      // Membuat transaksi pembayaran Midtrans
+      setIsPaymentLoading(true);
+
+      const payment = await createPayment(
+        data.order.orderNumber,
+        data.order.accessToken,
+      );
+
       // Menampilkan konfirmasi pesanan
       setCompletedOrder({
         id: data.order.orderNumber,
         customerName: data.order.customerName,
         total: Number(data.order.total),
+        paymentStatus: "pending",
       });
 
-      // Mengosongkan keranjang setelah transaksi berhasil
+      // Mengosongkan keranjang setelah transaksi pembayaran berhasil dibuat
       clearCart();
+
+      // Membuka halaman pembayaran Midtrans
+      window.location.href = payment.redirectUrl;
 
       if (!historySaved) {
         alert(
@@ -239,6 +273,7 @@ export default function CheckoutPage() {
       );
     } finally {
       setIsSubmitting(false);
+      setIsPaymentLoading(false);
     }
   }
 
@@ -501,16 +536,23 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   form="shipping-form"
-                  disabled={isSubmitting || isProductsLoading || productsError}
+                  disabled={
+                    isSubmitting ||
+                    isPaymentLoading ||
+                    isProductsLoading ||
+                    productsError
+                  }
                   className="mt-6 w-full rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isSubmitting
-                    ? "Processing Order..."
-                    : isProductsLoading
-                      ? "Loading Products..."
-                      : productsError
-                        ? "Products Unavailable"
-                        : "Place Order"}
+                  {isPaymentLoading
+                    ? "Redirecting to Payment..."
+                    : isSubmitting
+                      ? "Processing Order..."
+                      : isProductsLoading
+                        ? "Loading Products..."
+                        : productsError
+                          ? "Products Unavailable"
+                          : "Place Order"}
                 </button>
               </div>
             </aside>

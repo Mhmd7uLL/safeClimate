@@ -252,9 +252,10 @@ export async function POST(request: Request) {
           subtotal,
           total,
           status,
-          access_token_hash
+          access_token_hash,
+          payment_status
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'placed', $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'placed', $12, 'unpaid')
         RETURNING id
       `,
       [
