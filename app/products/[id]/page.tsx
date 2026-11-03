@@ -1,7 +1,8 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { products } from "../../data/products";
+import { db } from "@/lib/db";
 import AddToCart from "@/components/AddToCart";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -10,18 +11,22 @@ type ProductPageProps = {
   params: Promise<{ id: string }>;
 };
 
-// Generate halaman untuk seluruh produk
-export function generateStaticParams() {
-  return products.map((product) => ({
-    id: String(product.id),
-  }));
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: string | number;
+  description: string;
+  icon: string | null;
 }
 
 // Halaman utama
 export default function ProductDetailPage({ params }: ProductPageProps) {
   return (
     <main className="min-h-screen bg-[#F7F8F2] text-[#183B2B]">
-      <Navbar />
+      <Suspense fallback={<div className="h-[76px]" />}>
+        <Navbar />
+      </Suspense>
 
       {/* Product Detail dengan Suspense */}
       <Suspense
@@ -39,16 +44,44 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
   );
 }
 
-// Komponen yang membaca params
+// Komponen yang mengambil data produk dari PostgreSQL
 async function ProductDetailContent({ params }: ProductPageProps) {
+  await connection();
+
   const { id } = await params;
+  const productId = Number(id);
 
-  // Mencari produk berdasarkan ID
-  const product = products.find((item) => String(item.id) === id);
-
-  if (!product) {
+  if (!Number.isSafeInteger(productId) || productId <= 0) {
     notFound();
   }
+
+  // Mengambil produk berdasarkan ID
+  const result = await db.query<Product>(
+    `
+      SELECT
+        id,
+        name,
+        category,
+        price,
+        description,
+        icon
+      FROM products
+      WHERE id = $1
+    `,
+    [productId],
+  );
+
+  const productData = result.rows[0];
+
+  if (!productData) {
+    notFound();
+  }
+
+  // Konversi harga BIGINT dari PostgreSQL menjadi number
+  const product = {
+    ...productData,
+    price: Number(productData.price),
+  };
 
   // Format harga Rupiah
   const formatPrice = (price: number) =>

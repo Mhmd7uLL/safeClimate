@@ -45,7 +45,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
               "productId" in item &&
               "quantity" in item &&
               typeof item.productId === "number" &&
-              Number.isInteger(item.productId) &&
+              Number.isSafeInteger(item.productId) &&
+              item.productId > 0 &&
               typeof item.quantity === "number" &&
               Number.isInteger(item.quantity) &&
               item.quantity > 0,
@@ -70,7 +71,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Menambahkan produk ke keranjang
   const addToCart = (productId: number, quantity = 1) => {
-    if (!Number.isInteger(quantity) || quantity < 1) return;
+    if (
+      !Number.isSafeInteger(productId) ||
+      productId <= 0 ||
+      !Number.isInteger(quantity) ||
+      quantity < 1
+    )
+      return;
 
     setCartItems((current) => {
       const existingItem = current.find((item) => item.productId === productId);

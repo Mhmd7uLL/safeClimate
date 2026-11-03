@@ -1,7 +1,9 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { products } from "./data/products";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { db } from "@/lib/db";
 
 export default function Home() {
   return (
@@ -110,45 +112,15 @@ export default function Home() {
         </div>
 
         {/* Product Grid */}
-        <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {products.slice(0, 4).map((product) => (
-            <Link
-              href={`/products/${product.id}`}
-              key={product.id}
-              className="group block overflow-hidden rounded-3xl border border-[#183B2B]/10 bg-white transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              {/* Product Illustration */}
-              <div className="flex h-52 items-center justify-center bg-[#E5EEDB] transition group-hover:bg-[#DCE9D1]">
-                <span className="text-7xl transition group-hover:scale-110">
-                  {product.icon}
-                </span>
-              </div>
-
-              {/* Product Information */}
-              <div className="p-5">
-                <p className="text-xs font-semibold text-[#76A65B]">
-                  {product.category.toUpperCase()}
-                </p>
-
-                <h3 className="mt-2 text-lg font-bold">{product.name}</h3>
-
-                <p className="mt-2 min-h-12 text-sm leading-6 text-gray-500">
-                  {product.description}
-                </p>
-
-                <div className="mt-5 border-t border-gray-100 pt-4">
-                  <p className="text-lg font-bold">
-                    {new Intl.NumberFormat("id-ID", {
-                      style: "currency",
-                      currency: "IDR",
-                      maximumFractionDigits: 0,
-                    }).format(product.price)}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <Suspense
+          fallback={
+            <div className="mt-12 py-20 text-center text-gray-500">
+              Loading featured products...
+            </div>
+          }
+        >
+          <FeaturedProducts />
+        </Suspense>
 
         {/* Bottom CTA */}
         <div className="mt-12 text-center">
@@ -163,5 +135,79 @@ export default function Home() {
 
       <Footer />
     </main>
+  );
+}
+
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: string | number;
+  description: string;
+  icon: string | null;
+}
+
+async function FeaturedProducts() {
+  await connection();
+
+  const result = await db.query<Product>(`
+    SELECT
+      id,
+      name,
+      category,
+      price,
+      description,
+      icon
+    FROM products
+    ORDER BY id ASC
+    LIMIT 4
+  `);
+
+  const products = result.rows.map((product) => ({
+    ...product,
+    price: Number(product.price),
+  }));
+
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(price);
+
+  return (
+    <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {products.map((product) => (
+        <Link
+          href={`/products/${product.id}`}
+          key={product.id}
+          className="group block overflow-hidden rounded-3xl border border-[#183B2B]/10 bg-white transition hover:-translate-y-1 hover:shadow-lg"
+        >
+          {/* Product Illustration */}
+          <div className="flex h-52 items-center justify-center bg-[#E5EEDB] transition group-hover:bg-[#DCE9D1]">
+            <span className="text-7xl transition group-hover:scale-110">
+              {product.icon}
+            </span>
+          </div>
+
+          {/* Product Information */}
+          <div className="p-5">
+            <p className="text-xs font-semibold text-[#76A65B]">
+              {product.category.toUpperCase()}
+            </p>
+
+            <h3 className="mt-2 text-lg font-bold">{product.name}</h3>
+
+            <p className="mt-2 min-h-12 text-sm leading-6 text-gray-500">
+              {product.description}
+            </p>
+
+            <div className="mt-5 border-t border-gray-100 pt-4">
+              <p className="text-lg font-bold">{formatPrice(product.price)}</p>
+            </div>
+          </div>
+        </Link>
+      ))}
+    </div>
   );
 }

@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/components/CartProvider";
-import { products } from "../data/products";
 
 interface CustomerData {
   fullName: string;
@@ -43,8 +42,56 @@ interface CompletedOrder {
   total: number;
 }
 
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  icon: string | null;
+}
+
 export default function CheckoutPage() {
   const { cartItems, totalItems, clearCart } = useCart();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function fetchProducts() {
+      try {
+        const response = await fetch("/api/products");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error("Failed to fetch products.");
+        }
+
+        if (isActive) {
+          setProducts(data.products);
+        }
+      } catch (error) {
+        console.error("Failed to load checkout products:", error);
+
+        if (isActive) {
+          setProductsError(true);
+        }
+      } finally {
+        if (isActive) {
+          setIsProductsLoading(false);
+        }
+      }
+    }
+
+    fetchProducts();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const [customerData, setCustomerData] = useState<CustomerData>({
     fullName: "",
@@ -54,6 +101,7 @@ export default function CheckoutPage() {
     city: "",
     postalCode: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("eco");
 
@@ -87,66 +135,110 @@ export default function CheckoutPage() {
     }));
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0 || isSubmitting) return;
 
-    const orderItems = cartItems.flatMap((item) => {
-      const product = products.find((product) => product.id === item.productId);
-
-      if (!product) return [];
-
-      return [
-        {
-          productId: item.productId,
-          name: product.name,
-          price: product.price,
-          quantity: item.quantity,
-        },
-      ];
-    });
-
-    if (orderItems.length === 0) return;
-
-    const order = {
-      id: `SC-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      customer: customerData,
-      items: orderItems,
-      shipping: {
-        method: shippingMethod,
-        name: selectedShipping.name,
-        price: selectedShipping.price,
-      },
-      subtotal,
-      shippingFee: selectedShipping.price,
-      total: totalPayment,
-      status: "Order Placed",
-    };
+    setIsSubmitting(true);
 
     try {
-      const savedOrders = JSON.parse(
-        localStorage.getItem("safeclimate-orders") || "[]",
-      );
-
-      const orders = Array.isArray(savedOrders) ? savedOrders : [];
-
-      localStorage.setItem(
-        "safeclimate-orders",
-        JSON.stringify([...orders, order]),
-      );
-
-      setCompletedOrder({
-        id: order.id,
-        customerName: customerData.fullName,
-        total: totalPayment,
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: customerData,
+          items: cartItems.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+          shippingMethod,
+        }),
       });
 
+      const data = await response.json();
+
+      if (!response.ok || !data.success || !data.order) {
+        throw new Error(data.message || "Failed to place your order.");
+      }
+
+      // Menyimpan nomor pesanan untuk akses Order History
+      let historySaved = true;
+
+      try {
+        const savedNumbers = JSON.parse(
+          localStorage.getItem("safeclimate-order-numbers") || "[]",
+        );
+
+        const orderNumbers: string[] = Array.isArray(savedNumbers)
+          ? savedNumbers.filter(
+              (number): number is string => typeof number === "string",
+            )
+          : [];
+
+        const updatedNumbers = [
+          ...new Set([...orderNumbers, data.order.orderNumber]),
+        ];
+
+        localStorage.setItem(
+          "safeclimate-order-numbers",
+          JSON.stringify(updatedNumbers),
+        );
+
+        // Menyimpan token akses setiap pesanan
+        const savedTokens: unknown = JSON.parse(
+          localStorage.getItem("safeclimate-order-tokens") || "{}",
+        );
+
+        const currentTokens =
+          savedTokens &&
+          typeof savedTokens === "object" &&
+          !Array.isArray(savedTokens)
+            ? (savedTokens as Record<string, string>)
+            : {};
+
+        const updatedTokens = {
+          ...currentTokens,
+          [data.order.orderNumber]: data.order.accessToken,
+        };
+
+        localStorage.setItem(
+          "safeclimate-order-tokens",
+          JSON.stringify(updatedTokens),
+        );
+      } catch (storageError) {
+        historySaved = false;
+        console.error("Failed to save order history reference:", storageError);
+      }
+
+      // Menampilkan konfirmasi pesanan
+      setCompletedOrder({
+        id: data.order.orderNumber,
+        customerName: data.order.customerName,
+        total: Number(data.order.total),
+      });
+
+      // Mengosongkan keranjang setelah transaksi berhasil
       clearCart();
+
+      if (!historySaved) {
+        alert(
+          "Your order was saved, but its history reference could not be stored. Please keep your Order ID: " +
+            data.order.orderNumber,
+        );
+      }
     } catch (error) {
-      console.error("Failed to save order:", error);
-      alert("Failed to save your order. Please try again.");
+      console.error("Checkout failed:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to place your order. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -405,12 +497,20 @@ export default function CheckoutPage() {
                     {formatPrice(totalPayment)}
                   </span>
                 </div>
+
                 <button
                   type="submit"
                   form="shipping-form"
-                  className="mt-6 w-full rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800"
+                  disabled={isSubmitting || isProductsLoading || productsError}
+                  className="mt-6 w-full rounded-lg bg-green-700 px-6 py-3 font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Place Order
+                  {isSubmitting
+                    ? "Processing Order..."
+                    : isProductsLoading
+                      ? "Loading Products..."
+                      : productsError
+                        ? "Products Unavailable"
+                        : "Place Order"}
                 </button>
               </div>
             </aside>

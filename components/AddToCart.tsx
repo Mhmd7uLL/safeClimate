@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 
 type AddToCartProps = {
@@ -9,9 +9,20 @@ type AddToCartProps = {
 
 export default function AddToCart({ productId }: AddToCartProps) {
   const { addToCart, isHydrated } = useCart();
+
   const [added, setAdded] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  // Memastikan render pertama server dan browser sama
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  const isReady = hasMounted && isHydrated;
 
   const handleAddToCart = () => {
+    if (!isReady) return;
+
     addToCart(productId);
     setAdded(true);
   };
@@ -21,10 +32,10 @@ export default function AddToCart({ productId }: AddToCartProps) {
       <button
         type="button"
         onClick={handleAddToCart}
-        disabled={!isHydrated}
+        disabled={!isReady}
         className="w-full rounded-full bg-[#183B2B] px-8 py-4 font-semibold text-white transition hover:bg-[#28583E] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {!isHydrated
+        {!isReady
           ? "Loading Cart..."
           : added
             ? "Added to Cart ✓"

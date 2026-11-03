@@ -1,14 +1,62 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useCart } from "@/components/CartProvider";
-import { products } from "../data/products";
+
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  icon: string | null;
+}
 
 export default function CartPage() {
   const { cartItems, updateQuantity, removeFromCart, clearCart, isHydrated } =
     useCart();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function fetchProducts() {
+      try {
+        const response = await fetch("/api/products");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error("Failed to fetch products.");
+        }
+
+        if (isActive) {
+          setProducts(data.products);
+        }
+      } catch (error) {
+        console.error("Failed to load cart products:", error);
+
+        if (isActive) {
+          setProductsError("Unable to load product information.");
+        }
+      } finally {
+        if (isActive) {
+          setIsProductsLoading(false);
+        }
+      }
+    }
+
+    fetchProducts();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   // Mengambil informasi produk dari data pusat
   const cartProducts = cartItems
@@ -55,9 +103,13 @@ export default function CartPage() {
 
       {/* Cart Content */}
       <section className="mx-auto max-w-7xl px-6 pb-24">
-        {!isHydrated ? (
+        {!isHydrated || (cartItems.length > 0 && isProductsLoading) ? (
           <div className="rounded-3xl bg-white py-24 text-center">
             <p className="text-gray-500">Loading your cart...</p>
+          </div>
+        ) : productsError && cartItems.length > 0 ? (
+          <div className="rounded-3xl bg-white py-24 text-center">
+            <p className="text-red-500">{productsError}</p>
           </div>
         ) : cartProducts.length === 0 ? (
           /* Empty Cart */

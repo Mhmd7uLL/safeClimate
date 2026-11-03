@@ -1,8 +1,9 @@
-
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCatalog from "@/components/ProductCatalog";
-import { products } from "../data/products";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { db } from "@/lib/db";
 
 export default function ProductsPage() {
   return (
@@ -23,14 +24,15 @@ export default function ProductsPage() {
             </h1>
 
             <p className="mt-4 max-w-xl leading-7 text-gray-500">
-              Discover essential products designed to help you
-              prepare for climate challenges while supporting
-              a more sustainable lifestyle.
+              Discover essential products designed to help you prepare for
+              climate challenges while supporting a more sustainable lifestyle.
             </p>
           </div>
 
           <p className="text-sm font-semibold text-[#527C3E]">
-            {products.length} Products Available
+            <Suspense fallback="Loading product count...">
+              <ProductCount />
+            </Suspense>
           </p>
         </div>
       </section>
@@ -42,4 +44,15 @@ export default function ProductsPage() {
       <Footer />
     </main>
   );
+}
+
+async function ProductCount() {
+  await connection();
+
+  const result = await db.query<{ total: number }>(`
+    SELECT COUNT(*)::int AS total
+    FROM products
+  `);
+
+  return <>{result.rows[0]?.total ?? 0} Products Available</>;
 }

@@ -3,11 +3,59 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useEffect, useState } from "react";
 import { useWishlist } from "@/components/WishlistToggle";
-import { products } from "../data/products";
+
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  icon: string | null;
+}
 
 export default function WishlistPage() {
   const { wishlistIds, removeWishlist, isHydrated } = useWishlist();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function fetchProducts() {
+      try {
+        const response = await fetch("/api/products");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error("Failed to fetch products.");
+        }
+
+        if (isActive) {
+          setProducts(data.products);
+        }
+      } catch (error) {
+        console.error("Failed to load wishlist products:", error);
+
+        if (isActive) {
+          setProductsError("Unable to load wishlist products.");
+        }
+      } finally {
+        if (isActive) {
+          setIsProductsLoading(false);
+        }
+      }
+    }
+
+    fetchProducts();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   // Mengambil produk yang tersimpan di Wishlist
   const wishlistProducts = products.filter((product) =>
@@ -49,9 +97,13 @@ export default function WishlistPage() {
 
       {/* Wishlist Content */}
       <section className="mx-auto max-w-7xl px-6 pb-24">
-        {!isHydrated ? (
+        {!isHydrated || (wishlistIds.length > 0 && isProductsLoading) ? (
           <div className="rounded-3xl bg-white py-24 text-center">
             <p className="text-gray-500">Loading your wishlist...</p>
+          </div>
+        ) : productsError && wishlistIds.length > 0 ? (
+          <div className="rounded-3xl bg-white py-24 text-center">
+            <p className="text-red-500">{productsError}</p>
           </div>
         ) : wishlistProducts.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

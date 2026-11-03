@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { products } from "../app/data/products";
 import { useWishlist } from "./WishlistToggle";
 
 const categories = [
@@ -13,10 +12,43 @@ const categories = [
   "Water Sustainability",
 ];
 
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  icon: string | null;
+}
+
 export default function ProductCatalog() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Products");
   const { toggleWishlist, isWishlisted } = useWishlist();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Ambil data produk dari API
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const response = await fetch("/api/products");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error("Failed to fetch products");
+        }
+
+        setProducts(data.products);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchProducts();
+  }, []);
 
   // Filter produk berdasarkan pencarian dan kategori
   const filteredProducts = products.filter((product) => {
@@ -98,7 +130,11 @@ export default function ProductCatalog() {
 
       {/* Product Grid */}
       <section className="mx-auto max-w-7xl px-6 pb-24">
-        {filteredProducts.length > 0 ? (
+        {isLoading ? (
+          <div className="py-20 text-center">
+            <p className="text-gray-500 animate-pulse">Loading products...</p>
+          </div>
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {filteredProducts.map((product) => {
               const isFavorite = isWishlisted(product.id);

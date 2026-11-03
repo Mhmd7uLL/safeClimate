@@ -27,6 +27,7 @@ Website menyediakan minimal 20 produk yang dapat dijelajahi oleh pengunjung.
 - **Next.js** – Framework pengembangan website berbasis React.
 - **TypeScript** – Menambahkan sistem tipe data pada JavaScript.
 - **Tailwind CSS** – Mengatur tampilan dan desain website.
+- **PostgreSQL** - Database
 
 ## Struktur Folder
 

@@ -33,12 +33,14 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         const parsed: unknown = JSON.parse(savedWishlist);
 
         if (Array.isArray(parsed)) {
-          setWishlistIds(
-            parsed.filter(
-              (id): id is number =>
-                typeof id === "number" && Number.isInteger(id),
+          setWishlistIds([
+            ...new Set(
+              parsed.filter(
+                (id): id is number =>
+                  typeof id === "number" && Number.isSafeInteger(id) && id > 0,
+              ),
             ),
-          );
+          ]);
         }
       }
     } catch (error) {
@@ -57,6 +59,8 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   // Menambah atau menghapus produk favorit
   const toggleWishlist = (productId: number) => {
+    if (!Number.isSafeInteger(productId) || productId <= 0) return;
+
     setWishlistIds((current) =>
       current.includes(productId)
         ? current.filter((id) => id !== productId)
