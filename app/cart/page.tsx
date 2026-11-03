@@ -226,6 +226,13 @@ export default function CartPage() {
                 Shipping costs are not included and will be calculated during
                 checkout.
               </p>
+
+              <Link
+                href="/checkout"
+                className="mt-6 block w-full rounded-full bg-[#183B2B] px-6 py-4 text-center font-semibold text-white transition hover:bg-[#28583E]"
+              >
+                Proceed to Checkout →
+              </Link>
             </aside>
           </div>
         )}

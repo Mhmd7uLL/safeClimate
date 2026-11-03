@@ -63,6 +63,29 @@ export default function OrdersPage() {
       maximumFractionDigits: 0,
     }).format(price);
 
+  function handleCancelOrder(orderId: string) {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this order? This action cannot be undone.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const updatedOrders = orders.filter((order) => order.id !== orderId);
+
+      localStorage.setItem("safeclimate-orders", JSON.stringify(updatedOrders));
+
+      setOrders(updatedOrders);
+
+      if (expandedOrderId === orderId) {
+        setExpandedOrderId(null);
+      }
+    } catch (error) {
+      console.error("Failed to cancel order:", error);
+      alert("Failed to cancel your order. Please try again.");
+    }
+  }
+
   return (
     <main className="flex-1 bg-gray-50 px-6 py-12">
       <div className="mx-auto max-w-5xl">
@@ -239,6 +262,14 @@ export default function OrdersPage() {
                     </span>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCancelOrder(order.id)}
+                  className="mt-6 w-full rounded-lg border border-red-300 px-5 py-3 font-semibold text-red-600 transition hover:bg-red-50"
+                >
+                  Cancel Order
+                </button>
               </article>
             ))}
           </div>
